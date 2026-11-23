@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ? firstPeriodSubjects().map(subject => subject.nome)
             : perfil.selected.filter(nome => !semOferta.has(nome));
     }
-    if (appState.profiles.length) saveAppState();
 
     // Sincroniza Checkboxes
     document.getElementById('dark-mode-toggle').checked = appState.darkMode;
@@ -44,13 +43,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if(appState.darkMode) document.body.classList.add('dark-mode');
 
     initCalendarGrid();
-    renderTabs();
-
-    if (appState.profiles.length === 0) {
-        createNewProfile("Você");
+    const profile = getActiveProfile();
+    if (profile) {
+        switchProfile(profile.id);
     } else {
-        renderSubjectsList();
-        updateSchedule();
+        createNewProfile("Você");
     }
 });
 
@@ -68,7 +65,6 @@ function createNewProfile(name) {
     };
     appState.profiles.push(newProfile);
     switchProfile(newId);
-    openProfileModal(true); 
 }
 
 function switchProfile(profileId) {
@@ -77,6 +73,11 @@ function switchProfile(profileId) {
     renderTabs();
     renderSubjectsList();
     updateSchedule();
+
+    const profile = getActiveProfile();
+    if (profile.type !== 'calouro' && profile.type !== 'veterano') {
+        openProfileModal();
+    }
 }
 
 function deleteProfile(profileId) {
@@ -197,7 +198,7 @@ function confirmFriendName() {
     }
 }
 
-function openProfileModal(isNew = false) {
+function openProfileModal() {
     const profile = getActiveProfile();
     document.getElementById('modal-user-name').textContent = profile.name;
     const modal = document.getElementById('welcome-modal');
