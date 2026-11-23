@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizador de Grade Horária - BSI</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- MODAL PRINCIPAL (Boas-vindas / Perfil / Adicionar Amigo) -->
+    <div id="welcome-modal" class="modal-overlay">
+        <div class="modal-content">
+            
+            <!-- Etapa 0: Nome (Novo Amigo) -->
+            <div id="modal-step-0" style="display: none;">
+                <div class="modal-title">Novo Perfil</div>
+                <p>Qual é o nome do seu amigo(a)?</p>
+                <div style="margin: 20px 0;">
+                    <input type="text" id="new-friend-name" class="modal-input" placeholder="Ex: João Silva" onkeypress="if(event.key === 'Enter') confirmFriendName()">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="btn btn-secondary" onclick="closeProfileModal()">Cancelar</button>
+                    <button class="btn btn-primary" onclick="confirmFriendName()">Continuar</button>
+                </div>
+            </div>
+
+            <!-- Etapa 1: Seleção de Perfil -->
+            <div id="modal-step-1">
+                <div class="modal-title">👋 Bem-vindo <span id="modal-user-name"></span></div>
+                <p>Para começarmos, qual é o seu perfil atual?</p>
+                <div class="modal-options">
+                    <div class="profile-card" onclick="selectProfileType('calouro')">
+                        <span class="profile-icon">👶</span>
+                        <span class="profile-title">Sou Calouro</span>
+                        <span class="profile-desc">Vou cursar o 1º período agora. Quero minha grade pronta.</span>
+                    </div>
+                    <div class="profile-card" onclick="selectProfileType('veterano')">
+                        <span class="profile-icon">🎓</span>
+                        <span class="profile-title">Sou Veterano</span>
+                        <span class="profile-desc">Já cursei algumas matérias. Quero marcar o que já fiz.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Etapa 2: Histórico (Veterano) -->
+            <div id="modal-step-2" style="display: none;">
+                <div class="modal-title">🎓 Histórico Escolar</div>
+                <p>Clique nas matérias para mudar o status:</p>
+                <div style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
+                    ⚪ Não cursei &nbsp;&nbsp; 🟢 Aprovado &nbsp;&nbsp; 🔴 Reprovado
+                </div>
+                <div id="history-container" style="max-height: 50vh; overflow-y: auto; padding: 10px;"></div>
+                <div style="margin-top: 2rem;">
+                    <button class="btn btn-primary" onclick="finishVeteranSetup()">✅ Confirmar Histórico</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMAÇÃO (Novo!) -->
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-title" style="font-size: 1.4rem;">⚠️ Confirmação</div>
+            <p id="confirm-text">Tem certeza?</p>
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancelar</button>
+                <button id="confirm-yes-btn" class="btn btn-danger">Sim, Remover</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>📅 Organizador de Grade BSI · 2027/1</h1>
+            
+            <div class="top-controls">
+                <label class="toggle-label">
+                    <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode()">
+                    <span>🌙 Modo Escuro</span>
+                </label>
+                <label class="toggle-label">
+                    <input type="checkbox" id="group-mode-toggle" onchange="toggleGroupMode()">
+                    <span>👥 Comparar Horários (Todos)</span>
+                </label>
+            </div>
+
+            <div class="tools-section">
+                <div class="tools-buttons">
+                    <button class="btn btn-primary" id="suggest">Sugerir grade</button>
+                    <button class="btn btn-outline" onclick="editCurrentProfile()">👤 Editar Perfil Atual</button>
+                    <div id="file-import-control" style="position: relative;">
+                        <label for="jsonInput" class="btn btn-primary">📂 Carregar JSON</label>
+                        <input type="file" id="jsonInput" accept=".json">
+                    </div>
+                    <button class="btn btn-secondary" id="paste-import-control" onclick="togglePasteArea()">📝 Colar JSON</button>
+                    <button class="btn btn-secondary" style="color:var(--danger-color);border-color:var(--danger-color);" onclick="resetAllData()">🗑️ Resetar Tudo</button>
+                </div>
+                <div id="paste-area-container">
+                    <textarea id="paste-textarea" placeholder='Cole seu JSON aqui...'></textarea>
+                    <button class="btn btn-primary" style="margin-top:5px; width:100%;" onclick="processPastedJSON()">Processar</button>
+                </div>
+                <div id="file-status"></div>
+            </div>
+        </header>
+
+        <!-- ABAS DE PERFIS -->
+        <div class="tabs-container" id="tabs-container">
+            <!-- Gerado via JS -->
+        </div>
+
+        <div role="alert" id="conflict-alert" class="conflict-alert">
+            <strong>⚠️ Conflito Detectado!</strong> Verifique os blocos vermelhos na grade.
+        </div>
+
+        <div class="main-grid">
+            <div class="selection-panel" id="subjects-list"></div>
+            <div class="calendar-panel">
+                <div class="calendar-summary">
+                    <p id="fixed-schedule-notice" hidden>Grade fixa do 1º período</p>
+                    <output id="weekly-hours" aria-label="Carga semanal do perfil ativo"></output>
+                </div>
+                <div class="calendar-container">
+                    <div class="time-labels" id="time-labels"></div>
+                    <div class="days-grid" id="days-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <dialog id="planner" aria-labelledby="plan-title">
+        <h2 id="plan-title">Sugestão de grade</h2>
+        <label for="period">Para qual período você vai?</label><select id="period"></select>
+        <label for="load">Carga semanal de aulas</label>
+        <select id="load">
+            <option value="600">Leve · até 10 h e 4 matérias</option>
+            <option value="900" selected>Moderada · até 15 h e 6 matérias</option>
+            <option value="1200">Pesada · até 20 h e 8 matérias</option>
+        </select>
+        <p id="planner-description">A proposta usa seu histórico e os horários disponíveis. Ao aplicar, ela substitui a seleção deste perfil.</p>
+        <div aria-live="polite" id="plan-summary"></div><ul id="plan-list"></ul>
+        <div class="tools-buttons"><button class="btn btn-primary" id="apply-plan">Aplicar sugestão</button>
+        <button class="btn btn-secondary" id="cancel-plan">Cancelar</button></div>
+    </dialog>
+    <script src="subjects.js"></script>
+    <script src="catalog.js"></script>
+    <script src="app.js"></script>
+    <script src="planner.js"></script>
+</body>
+</html>
